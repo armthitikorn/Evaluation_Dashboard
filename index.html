@@ -35,7 +35,7 @@
             margin-top: 30px;
         }
 
-        /* Summary Cards - ใช้ Flexbox เพื่อ Responsive */
+        /* Summary Cards - Responsive Flexbox */
         .summary-cards {
             display: flex;
             gap: 20px;
@@ -66,7 +66,7 @@
             color: #3498db;
         }
 
-        /* Table Styles - Responsive */
+        /* Table Styles */
         #submissionsTable {
             width: 100%;
             border-collapse: collapse;
@@ -74,7 +74,7 @@
             background-color: white;
             box-shadow: 0 4px 8px rgba(0,0,0,0.05);
             border-radius: 8px;
-            overflow: hidden; /* Fix border radius for table */
+            overflow: hidden; 
         }
         #submissionsTable th, #submissionsTable td {
             border: 1px solid #dcdde1;
@@ -107,6 +107,10 @@
         .btn-action:hover {
             background-color: #16a085;
         }
+        .btn-link-audio {
+            background-color: #f39c12 !important; 
+            padding: 5px 10px !important;
+        }
 
         /* Modal Styles */
         #scoringModal {
@@ -131,11 +135,6 @@
             text-align:left;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
-        #scoringModal label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
         #scoringModal input, #scoringModal textarea {
             width: 100%;
             padding: 10px;
@@ -147,7 +146,7 @@
             font-size: 15px;
         }
         
-        /* Mobile Optimization */
+        /* Mobile Optimization (Responsive) */
         @media (max-width: 992px) {
             .container { padding: 15px; }
             h1 { font-size: 30px; }
@@ -254,7 +253,7 @@
 
         // --- 1. Supabase Config (ใช้ค่าเดิม) ---
         const supabaseUrl = 'https://wzwyotzzxycqfwercakh.supabase.co';
-        // ใช้ Anon Key เดิม
+        [cite_start]// ใช้ Anon Key เดิม [cite: 45]
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6d3lvdHp6eHljcWZ3ZXJjYWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTg3MTMsImV4cCI6MjA3MjYzNDcxM30.lgiAf9oBUqsaWGb3u_80wuoKAODQHE_lIBxpGumhrno'; 
         const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -262,15 +261,15 @@
         async function fetchSubmissions() {
             const { data, error } = await supabase
                 .from('submissions')
-                // ต้อง Select คอลัมน์ manual_score, manual_feedback, reviewer_name ด้วย
                 .select('id, created_at, name, question_text, audio_url, manual_score, manual_feedback, reviewer_name') 
                 .eq('part_number', 99) // ดึงเฉพาะ Final Full Session
                 .order('created_at', { ascending: false });
 
             if (error) {
                 console.error('Error fetching submissions:', error);
+                // แสดงข้อความแนะนำให้ตรวจสอบ RLS/Columns
                 document.getElementById('submissionsList').innerHTML = 
-                    `<tr><td colspan="8">Error: Cannot load data. ${error.message}</td></tr>`;
+                    `<tr><td colspan="8" style="color:red; font-weight:bold;">Error: ไม่สามารถโหลดข้อมูลได้ (Code 400). กรุณาตรวจสอบ 1. RLS Policy 2. คอลัมน์ manual_score/reviewer_name ในตาราง submissions.</td></tr>`;
                 return;
             }
             
@@ -281,6 +280,7 @@
         // --- 3. Update Summary Cards ---
         function updateDashboardSummary(data) {
             const total = data.length;
+            // ใช้ manual_score ในการคำนวณ
             const scored = data.filter(s => s.manual_score !== null).length;
             const passed = data.filter(s => s.manual_score !== null && s.manual_score >= 80).length;
             const pending = total - scored;
@@ -317,9 +317,10 @@
                         onclick="showScoringModal('${item.id}', '${item.name}', event)">✅ แก้ไขคะแนน</button>`;
                 }
                 
-                const difficultyMatch = item.question_text.match(/Difficulty: (.*)\)/);
+                const difficultyMatch = item.question_text ? item.question_text.match(/Difficulty: (.*)\)/) : null;
                 const difficulty = difficultyMatch ? difficultyMatch[1] : 'N/A';
                 
+                // การแสดงผลแบบ Responsive โดยใช้ data-label
                 const row = `
                     <tr id="row-${item.id}">
                         <td data-label="วันที่ส่ง">${new Date(item.created_at).toLocaleString('th-TH', { 
@@ -327,7 +328,7 @@
                         })}</td>
                         <td data-label="ชื่อ/รหัส">${item.name || 'N/A'}</td>
                         <td data-label="ระดับความยาก">${difficulty}</td>
-                        <td data-label="ไฟล์เสียง"><a href="${item.audio_url}" target="_blank" class="btn-action" style="background-color:#f39c12; padding:5px 10px;">ฟังไฟล์</a></td>
+                        <td data-label="ไฟล์เสียง"><a href="${item.audio_url}" target="_blank" class="btn-action btn-link-audio">ฟังไฟล์</a></td>
                         <td data-label="สถานะ" class="${scoreClass}">${statusText}</td>
                         <td data-label="คะแนน Manual" class="${scoreClass}">${scoreText}</td>
                         <td data-label="ผู้ประเมิน">${reviewer}</td>
@@ -342,7 +343,6 @@
         let currentScoringId = null;
 
         window.showScoringModal = async function(submissionId, traineeName, event) {
-            // หยุด Event Bubbling เพื่อไม่ให้เกิดปัญหากับ Table Sorting (ถ้ามี)
             if (event) event.stopPropagation();
             
             currentScoringId = submissionId;
@@ -381,7 +381,7 @@
                     manual_score: score, 
                     manual_feedback: feedback, 
                     reviewer_name: reviewer,
-                    is_reviewed: true // ตั้งสถานะว่าประเมินแล้ว
+                    is_reviewed: true
                 })
                 .eq('id', currentScoringId);
 
@@ -401,7 +401,6 @@
         document.getElementById('saveManualBtn').addEventListener('click', window.saveManualScore);
         
         // --- 6. Table Sorting Function (Dummy) ---
-        // (ละไว้ แต่สามารถเพิ่มโค้ด Sorting จริงภายหลังได้)
         function sortTable(n) { console.log(`Sorting column ${n}`); }
         window.sortTable = sortTable; 
 
