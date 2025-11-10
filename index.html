@@ -305,10 +305,6 @@
             let query = supabase
                 .from('submissions')
                 .select('id, created_at, name, question_text, audio_url, manual_score, manual_feedback, reviewer_name, s1_score, s2_score, s3_score, s4_score, s5_score') 
-                // เนื่องจากเราไม่ได้ใช้ part_number 99 ในไฟล์พนักงานล่าสุด เราจะเปลี่ยนเป็นดึงข้อมูลทั้งหมดที่มี manual_score เป็น Null หรือเป็นค่า
-                // หากคุณต้องการให้ Dashboard แสดงเฉพาะ Full Session ที่บันทึกเสร็จสิ้นแล้ว
-                // กรุณาเปลี่ยน part_number ที่ใช้ในการบันทึกตอนสุดท้ายของพนักงานเป็น 99 ในไฟล์ simulet.html
-                // และทำการปรับปรุงฐานข้อมูลให้มีคอลัมน์ part_number เป็นชนิด integer
                 .order('created_at', { ascending: false });
             
             // Apply Date Filter
@@ -421,7 +417,7 @@
                     manual_feedback: feedback, 
                     reviewer_name: reviewer,
                     s1_score: s1, s2_score: s2, s3_score: s3, s4_score: s4, s5_score: s5
-                    // FIX: ลบ is_reviewed: true ออก เพื่อแก้ปัญหาคอลัมน์ไม่พบ
+                    // FIX: is_reviewed ถูกลบออกแล้วเพื่อแก้ปัญหา schema error
                 })
                 .eq('id', currentScoringId);
 
