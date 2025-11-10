@@ -239,7 +239,7 @@
         const endDateInput = document.getElementById('endDate');
         const employeeNameInput = document.getElementById('employeeNameInput'); 
         const filterBtn = document.getElementById('filterBtn');
-
+        const submissionsList = document.getElementById('submissionsList'); // เพิ่ม submissionsList DOM
 
         // --- 4. Authentication Logic ---
         
@@ -293,7 +293,7 @@
             showLogin();
         }
 
-        // --- 5. Data Fetch & Summary Logic (MODIFIED for filtering) ---
+        // --- 5. Data Fetch & Summary Logic ---
         async function fetchSubmissions() {
             const startDate = startDateInput.value;
             const endDate = endDateInput.value;
@@ -346,7 +346,7 @@
             document.getElementById('pendingQueue').textContent = pending;
         }
 
-        // --- 6. Detailed Scoring Modal Logic (FIXED saveManualScore) ---
+        // --- 6. Detailed Scoring Modal Logic (Fixed) ---
         
         window.calculateTotalScore = function() {
             const s1 = parseInt(document.getElementById('s1_score').value) || 0;
@@ -417,7 +417,6 @@
                     manual_feedback: feedback, 
                     reviewer_name: reviewer,
                     s1_score: s1, s2_score: s2, s3_score: s3, s4_score: s4, s5_score: s5
-                    // FIX: is_reviewed ถูกลบออกแล้วเพื่อแก้ปัญหา schema error
                 })
                 .eq('id', currentScoringId);
 
@@ -434,10 +433,16 @@
             fetchSubmissions(); 
         }
 
-        // --- 7. Table Rendering (เดิม) ---
+        // --- 7. Table Rendering (Performance Optimized) ---
         function renderSubmissionsTable(data) {
             const tbody = document.getElementById('submissionsList');
-            tbody.innerHTML = '';
+            // FIX: ใช้ DocumentFragment เพื่อเพิ่มประสิทธิภาพในการแสดงผลข้อมูลจำนวนมาก
+            const fragment = document.createDocumentFragment();
+
+            if (data.length === 0) {
+                 tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">ไม่พบรายการผลงานตามเงื่อนไขที่เลือก</td></tr>';
+                 return;
+            }
 
             data.forEach(item => {
                 const score = item.manual_score;
@@ -459,23 +464,27 @@
                 const difficultyMatch = item.question_text ? item.question_text.match(/Difficulty: (.*)\)/) : null;
                 const difficulty = difficultyMatch ? difficultyMatch[1] : 'N/A';
                 
-                // การแสดงผลแบบ Responsive โดยใช้ data-label
-                const row = `
-                    <tr id="row-${item.id}">
-                        <td data-label="วันที่ส่ง">${new Date(item.created_at).toLocaleString('th-TH', { 
-                            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
-                        })}</td>
-                        <td data-label="ชื่อ/รหัส">${item.name || 'N/A'}</td>
-                        <td data-label="ระดับความยาก">${difficulty}</td>
-                        <td data-label="ไฟล์เสียง"><a href="${item.audio_url}" target="_blank" class="btn-action btn-link-audio">ฟังไฟล์</a></td>
-                        <td data-label="สถานะ" class="${scoreClass}">${statusText}</td>
-                        <td data-label="คะแนน Manual" class="${scoreClass}">${scoreText}</td>
-                        <td data-label="ผู้ประเมิน">${reviewer}</td>
-                        <td data-label="Action">${actionButton}</td>
-                    </tr>
+                // การสร้าง Row
+                const row = document.createElement('tr');
+                row.id = `row-${item.id}`;
+                row.innerHTML = `
+                    <td data-label="วันที่ส่ง">${new Date(item.created_at).toLocaleString('th-TH', { 
+                        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                    })}</td>
+                    <td data-label="ชื่อ/รหัส">${item.name || 'N/A'}</td>
+                    <td data-label="ระดับความยาก">${difficulty}</td>
+                    <td data-label="ไฟล์เสียง"><a href="${item.audio_url}" target="_blank" class="btn-action btn-link-audio">ฟังไฟล์</a></td>
+                    <td data-label="สถานะ" class="${scoreClass}">${statusText}</td>
+                    <td data-label="คะแนน Manual" class="${scoreClass}">${scoreText}</td>
+                    <td data-label="ผู้ประเมิน">${reviewer}</td>
+                    <td data-label="Action">${actionButton}</td>
                 `;
-                tbody.innerHTML += row;
+                fragment.appendChild(row);
             });
+            
+            // Clear existing rows and append the fragment in one operation
+            tbody.innerHTML = ''; 
+            tbody.appendChild(fragment);
         }
         
         // --- 8. Event Listeners and Initialization ---
