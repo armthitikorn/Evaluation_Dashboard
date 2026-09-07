@@ -99,7 +99,8 @@
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
         const supabaseUrl = 'https://wzwyotzzxycqfwercakh.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6d3lvdHp6eHljcWZ3ZXJjYWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTg3MTMsImV4cCI6MjA3MjYzNDcxM30.lgiAf9oBUqsaWGb3u_80wuoKAODQHE_lIBxpGumhrno';
+        // 🚨 FIX: ต้องใส่ anon/public key ที่ถูกต้องตรงนี้ (หาได้จาก Supabase Dashboard > Project Settings > API)
+        const supabaseKey = 'ใส่-ANON-KEY-ของคุณตรงนี้';
         const supabase = createClient(supabaseUrl, supabaseKey);
 
         const VALID_PASS = '12345678';
@@ -129,7 +130,13 @@
         // --- หัวใจสำคัญ: ดึงข้อมูลแล้วจัดกลุ่ม ---
         async function fetchSubmissions() {
             clearDebug();
-            let query = supabase.from('submissions').select('*').order('created_at', { ascending: false });
+            // 🚨 FIX: กรองเฉพาะข้อมูลที่มาจากแบบทดสอบ Voice HD เท่านั้น
+            // (ตาราง submissions ถูกใช้ร่วมกับแบบทดสอบ/แคมเปญอื่นด้วย เช่น "retirement"
+            //  ถ้าไม่กรอง จะดึงข้อมูลของทุกแบบทดสอบมาปนกันหมด)
+            let query = supabase.from('submissions')
+                .select('*')
+                .ilike('insurance_type', 'Voice HD%')
+                .order('created_at', { ascending: false });
             
             const start = document.getElementById('startDate').value;
             const end = document.getElementById('endDate').value;
