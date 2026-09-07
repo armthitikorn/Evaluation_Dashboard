@@ -1,209 +1,259 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ดึงข้อมูลไฟล์เสียง - Voice HD Submissions</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
-<style>
-    body { font-family: 'Sarabun', sans-serif; background:#f4f7f6; margin:0; padding:20px; color:#333; }
-    .container { max-width: 1100px; margin: 0 auto; background:#fff; padding:25px; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
-    h1 { color:#007bff; text-align:center; margin-top:0; }
-    .config-box { border:1px solid #ddd; border-radius:8px; padding:15px; margin-bottom:20px; background:#f9f9f9; }
-    .config-box label { display:block; font-weight:700; margin-bottom:5px; margin-top:10px; }
-    .config-box input { width:100%; box-sizing:border-box; padding:10px; border:1px solid #ccc; border-radius:6px; font-size:14px; }
-    .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:15px; }
-    select, .btn { padding:10px 16px; border-radius:8px; font-size:14px; cursor:pointer; border:1px solid #ccc; }
-    .btn { border:none; color:#fff; font-weight:700; }
-    .btn-primary { background:#007bff; }
-    .btn-success { background:#28a745; }
-    .btn:disabled { opacity:0.5; cursor:not-allowed; }
-    table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
-    th, td { padding:8px 10px; border-bottom:1px solid #eee; text-align:left; vertical-align:middle; }
-    th { background:#eef6ff; color:#007bff; position:sticky; top:0; }
-    tr:hover { background:#f7fbff; }
-    audio { max-width:220px; height:32px; }
-    .status { font-weight:700; margin:10px 0; }
-    .badge { padding:2px 8px; border-radius:10px; font-size:12px; color:#fff; }
-    .badge.setup { background:#999; }
-    .badge.answer { background:#28a745; }
-    .small-link { font-size:13px; color:#007bff; text-decoration:none; }
-    #tableWrap { max-height: 60vh; overflow:auto; border:1px solid #eee; border-radius:8px; }
-</style>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Evaluation Dashboard</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; background-color: #f4f7f6; color: #34495e; }
+        #loginPage { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); }
+        .main-content { display: none; padding: 20px; }
+        .table-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .scoring-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 15px; width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; }
+        .audio-step-card { border-left: 4px solid #3498db; background: #f8f9fa; padding: 10px; margin-bottom: 8px; border-radius: 5px; }
+        #debugBanner { display:none; background:#fff3cd; color:#856404; border:1px solid #ffeeba; padding:10px 15px; border-radius:8px; margin-bottom:15px; font-size:14px; white-space:pre-wrap; }
+    </style>
 </head>
 <body>
-<div class="container">
-    <h1>📥 ดึงข้อมูลไฟล์เสียง (Voice HD Submissions)</h1>
 
-    <div class="config-box">
-        <label>Supabase URL</label>
-        <input type="text" id="supaUrl" placeholder="https://xxxxxxxx.supabase.co" value="https://wzwyotzzxycqfwercakh.supabase.co">
-        <label>Supabase anon/public Key</label>
-        <input type="text" id="supaKey" placeholder="วางค่า anon key ที่นี่ (ค่าเดียวกับที่ใช้ในหน้าทำแบบทดสอบ)">
-        <div style="margin-top:15px;">
-            <button class="btn btn-primary" id="loadBtn" onclick="loadSubmissions()">โหลดรายการข้อมูล</button>
+    <div id="loginPage">
+        <div class="card shadow p-4" style="width: 350px;">
+            <h3 class="text-center mb-4">Dashboard Login</h3>
+            <input type="password" id="adminPass" class="form-control mb-3" placeholder="รหัสผ่าน">
+            <button id="loginBtn" class="btn btn-primary w-100">เข้าสู่ระบบ</button>
         </div>
     </div>
 
-    <div id="statusMsg" class="status"></div>
+    <div id="mainContent" class="main-content container-fluid">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold"><i class="bi bi-graph-up-arrow"></i> ผลการทดสอบ Simulator</h2>
+            <button id="logoutBtn" class="btn btn-outline-danger">ออกจากระบบ</button>
+        </div>
 
-    <div class="toolbar" id="toolbar" style="display:none;">
-        <select id="groupFilter" onchange="renderTable()"><option value="">ทุกกลุ่ม</option></select>
-        <select id="partFilter" onchange="renderTable()">
-            <option value="">ทุก Part</option>
-            <option value="1">Part 1</option>
-            <option value="2">Part 2</option>
-            <option value="3">Part 3</option>
-        </select>
-        <button class="btn btn-success" onclick="downloadAllZip()">ดาวน์โหลดทั้งหมดเป็น ZIP</button>
-        <span id="countLabel" style="margin-left:auto; font-weight:700;"></span>
+        <!-- NEW: แสดง error ที่นี่แทนการเงียบแบบเดิม -->
+        <div id="debugBanner"></div>
+
+        <div class="table-container shadow-sm">
+            <div class="row g-3 mb-4">
+                <div class="col-md-3"><label class="small">วันที่เริ่มต้น</label><input type="date" id="startDate" class="form-control"></div>
+                <div class="col-md-3"><label class="small">วันที่สิ้นสุด</label><input type="date" id="endDate" class="form-control"></div>
+                <div class="col-md-2 d-flex align-items-end"><button id="filterBtn" class="btn btn-success w-100">ค้นหา</button></div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>วัน-เวลา</th>
+                            <th>พนักงาน</th>
+                            <th>กลุ่มงาน</th>
+                            <th>ประเภท</th>
+                            <th>สถานะการประเมิน</th>
+                            <th>การจัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="submissionTable"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <div id="tableWrap">
-        <table id="dataTable" style="display:none;">
-            <thead>
-                <tr>
-                    <th>ชื่อ</th>
-                    <th>กลุ่ม</th>
-                    <th>Part/ข้อ</th>
-                    <th>คำถาม</th>
-                    <th>เสียง</th>
-                    <th>ดาวน์โหลด</th>
-                </tr>
-            </thead>
-            <tbody id="dataBody"></tbody>
-        </table>
+    <div id="scoringModal" class="scoring-modal">
+        <div class="modal-content shadow-lg">
+            <div class="d-flex justify-content-between mb-3">
+                <h4 class="fw-bold">ประเมินผล: <span id="modalTraineeName" class="text-primary"></span></h4>
+                <button class="btn-close" onclick="document.getElementById('scoringModal').style.display='none'"></button>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col-md-5 border-end">
+                    <h6 class="fw-bold mb-3 text-danger"><i class="bi bi-mic"></i> รายการเสียงที่บันทึกไว้</h6>
+                    <div id="audioPlaylist" style="max-height: 450px; overflow-y: auto;"></div>
+                </div>
+                <div class="col-md-7 ps-4">
+                    <h6 class="fw-bold mb-3 text-success"><i class="bi bi-pencil-square"></i> บันทึกคะแนน</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4"><label>Step 1 (5)</label><input type="number" id="s1" class="form-control score-input"></div>
+                        <div class="col-md-4"><label>Step 2 (5)</label><input type="number" id="s2" class="form-control score-input"></div>
+                        <div class="col-md-4"><label>Step 3 (5)</label><input type="number" id="s3" class="form-control score-input"></div>
+                        <div class="col-md-4"><label>Step 4 (5)</label><input type="number" id="s4" class="form-control score-input"></div>
+                        <div class="col-md-4"><label>Step 5 (5)</label><input type="number" id="s5" class="form-control score-input"></div>
+                        <div class="col-md-12"><label>ข้อเสนอแนะ</label><textarea id="feedback" class="form-control" rows="3"></textarea></div>
+                    </div>
+                    <div class="alert alert-secondary mt-3 text-center">
+                        <h5 class="mb-0">คะแนนรวม: <span id="totalScore">0</span> / 25</h5>
+                    </div>
+                    <button id="saveScoreBtn" class="btn btn-primary w-100 mt-3 fw-bold">บันทึกผลการประเมิน</button>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
-<script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-    import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    let allRows = [];
-    let supabase = null;
-
-    window.loadSubmissions = async function() {
         const supabaseUrl = 'https://wzwyotzzxycqfwercakh.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6d3lvdHp6eHljcWZ3ZXJjYWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTg3MTMsImV4cCI6MjA3MjYzNDcxM30.lgiAf9oBUqsaWGb3u_80wuoKAODQHE_lIBxpGumhrno';
-        const statusMsg = document.getElementById('statusMsg');
-        const loadBtn = document.getElementById('loadBtn');
+        // 🚨 FIX: ต้องใส่ anon/public key ที่ถูกต้องตรงนี้ (หาได้จาก Supabase Dashboard > Project Settings > API)
+        const supabaseKey = 'ใส่-ANON-KEY-ของคุณตรงนี้';
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
-        if (!url || !key) {
-            statusMsg.textContent = '⚠️ กรุณากรอก Supabase URL และ Key ให้ครบ';
-            return;
+        const VALID_PASS = '12345678';
+        let rawData = [];
+        let currentUserIdSession = null;
+
+        const debugBanner = document.getElementById('debugBanner');
+        function showDebug(message) {
+            debugBanner.textContent = message;
+            debugBanner.style.display = 'block';
+            console.error(message);
+        }
+        function clearDebug() {
+            debugBanner.style.display = 'none';
+            debugBanner.textContent = '';
         }
 
-        loadBtn.disabled = true;
-        statusMsg.textContent = 'กำลังโหลดข้อมูล...';
+        // Login
+        document.getElementById('loginBtn').onclick = () => {
+            if (document.getElementById('adminPass').value === VALID_PASS) {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                fetchSubmissions();
+            } else { alert('รหัสผ่านไม่ถูกต้อง'); }
+        };
 
-        try {
-            supabase = createClient(url, key);
+        // --- หัวใจสำคัญ: ดึงข้อมูลแล้วจัดกลุ่ม ---
+        async function fetchSubmissions() {
+            clearDebug();
+            let query = supabase.from('submissions').select('*').order('created_at', { ascending: false });
+            
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            if (start && end) { query = query.gte('created_at', start).lte('created_at', end + 'T23:59:59'); }
 
-            let from = 0;
-            const pageSize = 1000;
-            let rows = [];
-            while (true) {
-                const { data, error } = await supabase
-                    .from('submissions')
-                    .select('*')
-                    .range(from, from + pageSize - 1)
-                    .order('id', { ascending: true });
-                if (error) throw error;
-                if (!data || data.length === 0) break;
-                rows = rows.concat(data);
-                if (data.length < pageSize) break;
-                from += pageSize;
+            const { data, error } = await query;
+
+            // 🚨 FIX: เดิมโค้ดคือ `if(error) return;` ซึ่งเงียบไม่บอกอะไรเลย
+            // ตอนนี้จะแสดง error จริงให้เห็น เพื่อวินิจฉัยปัญหาได้ เช่น
+            // - "permission denied" / RLS policy บล็อกการอ่าน -> ต้องเปิด SELECT policy ให้ role anon บนตาราง submissions
+            // - "relation does not exist" -> ชื่อตารางผิด หรือยังไม่ได้สร้างตาราง
+            if (error) {
+                showDebug('ดึงข้อมูลจาก Supabase ไม่สำเร็จ: ' + error.message + 
+                    '\nสาเหตุที่พบบ่อย: (1) ยังไม่ได้เปิด Row Level Security policy ให้อ่านตาราง submissions ได้ ' +
+                    '(2) supabaseKey ยังไม่ถูกต้อง (3) ชื่อตารางไม่ตรงกับที่มีจริงใน Supabase');
+                return;
             }
 
-            allRows = rows.filter(r => r.audio_url); // เอาเฉพาะแถวที่มีไฟล์เสียงจริง
-
-            statusMsg.textContent = `✅ โหลดสำเร็จ พบไฟล์เสียงทั้งหมด ${allRows.length} รายการ`;
-
-            populateGroupFilter();
-            document.getElementById('toolbar').style.display = 'flex';
-            document.getElementById('dataTable').style.display = 'table';
-            renderTable();
-
-        } catch (err) {
-            console.error(err);
-            statusMsg.textContent = '❌ โหลดข้อมูลไม่สำเร็จ: ' + err.message;
-        } finally {
-            loadBtn.disabled = false;
-        }
-    };
-
-    function populateGroupFilter() {
-        const sel = document.getElementById('groupFilter');
-        const groups = [...new Set(allRows.map(r => r.user_group).filter(Boolean))];
-        sel.innerHTML = '<option value="">ทุกกลุ่ม</option>' +
-            groups.map(g => `<option value="${g}">${g}</option>`).join('');
-    }
-
-    window.renderTable = function() {
-        const groupVal = document.getElementById('groupFilter').value;
-        const partVal = document.getElementById('partFilter').value;
-
-        const filtered = allRows.filter(r => {
-            const groupOk = !groupVal || r.user_group === groupVal;
-            const partOk = !partVal || String(r.part_number) === partVal;
-            return groupOk && partOk;
-        });
-
-        const tbody = document.getElementById('dataBody');
-        tbody.innerHTML = filtered.map(r => `
-            <tr>
-                <td>${r.name || '-'}</td>
-                <td>${r.user_group || '-'}</td>
-                <td>${r.insurance_type || ''} (ข้อ ${r.part_number ?? '-'})</td>
-                <td style="max-width:250px;">${(r.question_text || '').slice(0, 60)}${(r.question_text||'').length>60?'...':''}</td>
-                <td><audio controls src="${r.audio_url}"></audio></td>
-                <td><a class="small-link" href="${r.audio_url}" download target="_blank">ดาวน์โหลด</a></td>
-            </tr>
-        `).join('');
-
-        document.getElementById('countLabel').textContent = `แสดง ${filtered.length} จาก ${allRows.length} รายการ`;
-        window._filteredRows = filtered;
-    };
-
-    window.downloadAllZip = async function() {
-        const rows = window._filteredRows || allRows;
-        if (rows.length === 0) {
-            alert('ไม่มีไฟล์ให้ดาวน์โหลด');
-            return;
-        }
-        const statusMsg = document.getElementById('statusMsg');
-        statusMsg.textContent = `กำลังรวมไฟล์ (0/${rows.length})...`;
-
-        const zip = new JSZip();
-        let done = 0;
-
-        for (const r of rows) {
-            try {
-                const res = await fetch(r.audio_url);
-                const blob = await res.blob();
-                const safeName = `${r.user_group || 'unknown'}_${r.part_number ?? 'x'}_${r.id}`
-                    .replace(/[^a-zA-Z0-9ก-๙_-]/g, '_');
-                zip.file(`${safeName}.webm`, blob);
-            } catch (e) {
-                console.error('ข้ามไฟล์ที่ดาวน์โหลดไม่ได้:', r.audio_url, e);
+            if (!data || data.length === 0) {
+                showDebug('เชื่อมต่อ Supabase สำเร็จ แต่ไม่พบข้อมูลในตาราง submissions เลย ' +
+                    '(ลองตรวจสอบว่าหน้าทำแบบทดสอบได้ส่งข้อมูลเข้ามาจริงหรือไม่ และตารางที่ query ตรงกับตารางที่หน้าทำแบบทดสอบ insert เข้าไปหรือไม่)');
             }
-            done++;
-            statusMsg.textContent = `กำลังรวมไฟล์ (${done}/${rows.length})...`;
+
+            rawData = data || [];
+
+            // จัดกลุ่มข้อมูลตาม user_id (หรือ userid) เพื่อให้ในตารางโชว์แค่ชื่อคนเดียวต่อรอบ
+            const grouped = rawData.reduce((acc, curr) => {
+                const key = curr.user_id || curr.userid;
+                if (!acc[key]) { acc[key] = curr; }
+                return acc;
+            }, {});
+
+            const tbody = document.getElementById('submissionTable');
+            tbody.innerHTML = '';
+
+            Object.values(grouped).forEach(item => {
+                const uid = item.user_id || item.userid;
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="small">${new Date(item.created_at).toLocaleString('th-TH')}</td>
+                        <td class="fw-bold">${item.name}</td>
+                        <td>${item.user_group || '-'}</td>
+                        <td>${item.insurance_type || '-'}</td>
+                        <td><span class="badge bg-info text-dark">${item.manual_score || 'รอประเมิน'}</span></td>
+                        <td><button class="btn btn-sm btn-primary" onclick="window.openEval('${uid}', '${item.name}')">ประเมิน</button></td>
+                    </tr>`;
+            });
         }
 
-        statusMsg.textContent = 'กำลังสร้างไฟล์ ZIP...';
-        const content = await zip.generateAsync({ type: 'blob' });
+        // --- เปิด Modal และดึงเสียงทุก Step ย้อนหลัง ---
+        window.openEval = (userId, name) => {
+            currentUserIdSession = userId;
+            document.getElementById('modalTraineeName').textContent = name;
+            document.getElementById('scoringModal').style.display = 'flex';
+            
+            // กรองข้อมูลเฉพาะของคนนี้มาเรียง Step 1-5
+            const steps = rawData.filter(d => (d.user_id === userId || d.userid === userId))
+                                .sort((a, b) => a.part_number - b.part_number);
+            
+            const playlist = document.getElementById('audioPlaylist');
+            playlist.innerHTML = '';
 
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(content);
-        a.download = `voice_hd_submissions_${Date.now()}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+            if (steps.filter(s => s.audio_url).length === 0) {
+                playlist.innerHTML = '<div class="text-muted small">ไม่พบไฟล์เสียงสำหรับผู้ใช้นี้ (ตรวจสอบว่า audio_url ถูกบันทึกไว้ในตารางหรือไม่)</div>';
+            }
+            
+            steps.forEach(s => {
+                if(!s.audio_url) return;
+                playlist.innerHTML += `
+                    <div class="audio-step-card">
+                        <div class="small fw-bold">Step ${s.part_number}: ${s.question_text || 'ไฟล์เสียง'}</div>
+                        <audio controls src="${s.audio_url}" class="w-100 mt-1" style="height: 30px;"
+                               onerror="this.insertAdjacentHTML('afterend', '<div class=\\'small text-danger\\'>เล่นไฟล์นี้ไม่ได้ (ตรวจสอบว่า storage bucket เป็น public หรือไม่)</div>')"></audio>
+                    </div>`;
+            });
 
-        statusMsg.textContent = `✅ ดาวน์โหลด ZIP สำเร็จ (${rows.length} ไฟล์)`;
-    };
-</script>
+            // ดึงคะแนนเดิม (ถ้ามี)
+            const summary = steps.find(s => s.manual_score !== null && s.manual_score !== undefined) || steps[0] || {};
+            document.getElementById('s1').value = summary.s1_score || '';
+            document.getElementById('s2').value = summary.s2_score || '';
+            document.getElementById('s3').value = summary.s3_score || '';
+            document.getElementById('s4').value = summary.s4_score || '';
+            document.getElementById('s5').value = summary.s5_score || '';
+            document.getElementById('feedback').value = summary.feedback || '';
+            calculateTotal();
+        };
+
+        const calculateTotal = () => {
+            const sum = ['s1','s2','s3','s4','s5'].reduce((acc, id) => acc + (parseInt(document.getElementById(id).value) || 0), 0);
+            document.getElementById('totalScore').textContent = sum;
+        };
+        document.querySelectorAll('.score-input').forEach(i => i.oninput = calculateTotal);
+
+        document.getElementById('saveScoreBtn').onclick = async () => {
+            const total = document.getElementById('totalScore').textContent;
+            const feedback = document.getElementById('feedback').value;
+            
+            // อัปเดตข้อมูลลงทุกแถวที่อยู่ใน Session เดียวกัน
+            const { error } = await supabase.from('submissions')
+                .update({ 
+                    manual_score: total, 
+                    feedback: feedback,
+                    s1_score: document.getElementById('s1').value,
+                    s2_score: document.getElementById('s2').value,
+                    s3_score: document.getElementById('s3').value,
+                    s4_score: document.getElementById('s4').value,
+                    s5_score: document.getElementById('s5').value
+                })
+                .match({ user_id: currentUserIdSession });
+
+            if (error) {
+                showDebug('บันทึกคะแนนไม่สำเร็จ: ' + error.message + 
+                    '\nสาเหตุที่พบบ่อย: ตาราง submissions อาจยังไม่มีคอลัมน์ manual_score / feedback / s1_score...s5_score ' +
+                    'หรือ RLS ไม่ได้เปิดสิทธิ์ UPDATE ให้ role anon');
+                return;
+            }
+            alert("บันทึกคะแนนสำเร็จ");
+            fetchSubmissions();
+            document.getElementById('scoringModal').style.display='none';
+        };
+
+        document.getElementById('filterBtn').onclick = fetchSubmissions;
+        document.getElementById('logoutBtn').onclick = () => location.reload();
+    </script>
 </body>
 </html>
